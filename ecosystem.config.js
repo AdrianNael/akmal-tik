@@ -3,7 +3,7 @@ module.exports = {
         {
             name: "akmal-web",
             script: "npm",
-            args: "start",
+            args: "run start:next",
             env: {
                 PORT: 3000,
                 NODE_ENV: "production",
