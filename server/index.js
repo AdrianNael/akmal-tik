@@ -44,10 +44,10 @@ app.post("/remove-background", upload.single("image"), async (req, res) => {
     const metadata = await sharp(inputPath).metadata();
     await sharp(inputPath).resize({ width: 800 }).toFile(resizedPath);
 
-    // Gunakan 'rembg' command standard (lebih cepat tanpa alpha matting)
-    const cmd = `rembg i "${resizedPath}" "${bgRemovedPath}"`;
+    // Gunakan 'python3 -m rembg' agar lebih aman dari isu PATH
+    const cmd = `python3 -m rembg i "${resizedPath}" "${bgRemovedPath}"`;
 
-    console.log("Running command:", cmd); // Debugging
+    console.log("Running command:", cmd);  // Debugging
 
 
     exec(cmd, async (error, stdout, stderr) => {
