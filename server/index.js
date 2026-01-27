@@ -151,8 +151,8 @@ app.post("/save-idcard", upload.single("file"), async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to save file",
-      error: err.message, // biar tau pesan error aslinya
-      stack: err.stack, // biar keliatan trace errornya
+      error: err.message,
+      stack: err.stack,
     });
   }
 });
