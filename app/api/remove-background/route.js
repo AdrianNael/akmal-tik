@@ -32,7 +32,7 @@ export async function POST(req) {
     await sharp(inputPath).resize({ width: 800 }).toFile(resizedPath);
 
     await new Promise((resolve, reject) => {
-      const cmd = `rembg i "${resizedPath}" "${bgRemovedPath}"`;
+      const cmd = `python3 -m rembg i "${resizedPath}" "${bgRemovedPath}"`;
 
       exec(cmd, (err, stdout, stderr) => {
         if (stdout) console.log("Rembg stdout:", stdout);
