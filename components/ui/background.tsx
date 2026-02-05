@@ -21,13 +21,12 @@ export default function Background() {
 
   // 2. Background Gambar untuk Dashboard / Halaman Lain
   return (
-    <div className="fixed inset-0 -z-50">
+    <div className="fixed inset-0 -z-50 overflow-hidden bg-white">
       <img
         src="/background.png"
         alt="Background"
         className="w-full h-full object-cover opacity-100"
       />
-      <div className="absolute inset-0 bg-white/30 backdrop-blur-[2px]" />
     </div>
   );
 }
