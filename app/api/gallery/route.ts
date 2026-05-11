@@ -18,8 +18,8 @@ function getFilesRecursively(dir: string, baseDir: string): any[] {
         } else {
             if (file.endsWith(".png") || file.endsWith(".jpg") || file.endsWith(".jpeg")) {
                 const relativePath = path.relative(baseDir, filePath).replace(/\\/g, "/");
-                // Gunakan URL absolut ke server Express port 5000 agar stabil
-                const urlPath = `http://localhost:5000/uploads/idcards/${relativePath}`;
+                // Gunakan Image Proxy internal Next.js agar jalan di Local & Server (Linux)
+                const urlPath = `/api/gallery/image/${relativePath}`;
                 
                 // Analisa path: 2026/05/Prodi/file.png
                 const pathParts = relativePath.split("/");
