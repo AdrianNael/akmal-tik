@@ -42,6 +42,7 @@ export default function GalleryPage() {
     const [selectedMonth, setSelectedMonth] = useState("Semua");
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const [lastUpdated, setLastUpdated] = useState<string>("");
+    const [isZipping, setIsZipping] = useState(false);
 
     const fetchFiles = async () => {
         setLoading(true);
@@ -57,6 +58,41 @@ export default function GalleryPage() {
             toast.error("Gagal memuat galeri");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDownloadZip = async () => {
+        if (filteredFiles.length === 0) {
+            toast.error("Tidak ada file untuk diunduh");
+            return;
+        }
+
+        setIsZipping(true);
+        try {
+            const res = await fetch("/api/gallery/download-zip", {
+                method: "POST",
+                body: JSON.stringify({ files: filteredFiles }),
+                headers: { "Content-Type": "application/json" }
+            });
+
+            if (res.ok) {
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `IDCards_${selectedProdi.replace(/\s+/g, "_")}_${selectedYear}_${selectedMonth}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                toast.success("File ZIP berhasil dibuat!");
+            } else {
+                toast.error("Gagal membuat file ZIP");
+            }
+        } catch (error) {
+            console.error("ZIP Error:", error);
+            toast.error("Terjadi kesalahan saat membuat ZIP");
+        } finally {
+            setIsZipping(false);
         }
     };
 
@@ -140,6 +176,19 @@ export default function GalleryPage() {
                                     Kembali ke Dashboard
                                 </Button>
                             </Link>
+                            <Button 
+                                onClick={handleDownloadZip} 
+                                variant="default" 
+                                disabled={isZipping || filteredFiles.length === 0}
+                                className="rounded-full bg-zinc-900 shadow-lg hover:bg-black transition-all"
+                            >
+                                {isZipping ? (
+                                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                ) : (
+                                    <Download className="h-4 w-4 mr-2" />
+                                )}
+                                Download ZIP ({filteredFiles.length})
+                            </Button>
                             <Button onClick={fetchFiles} variant="outline" className="rounded-full bg-white shadow-sm">
                                 <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                                 Refresh

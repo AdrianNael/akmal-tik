@@ -18,13 +18,9 @@ function getFilesRecursively(dir: string, baseDir: string): any[] {
         } else {
             if (file.endsWith(".png") || file.endsWith(".jpg") || file.endsWith(".jpeg")) {
                 const relativePath = path.relative(baseDir, filePath).replace(/\\/g, "/");
-                // Gunakan Image Proxy internal Next.js agar jalan di Local & Server (Linux)
                 const urlPath = `/api/gallery/image/${relativePath}`;
-                
-                // Analisa path: 2026/05/Prodi/file.png
+
                 const pathParts = relativePath.split("/");
-                
-                // Ambil info dari path
                 const year = pathParts.length >= 1 ? pathParts[0] : "Unknown";
                 const month = pathParts.length >= 2 ? pathParts[1] : "Unknown";
                 const prodi = pathParts.length >= 3 ? pathParts[pathParts.length - 2] : "Unknown";
@@ -46,21 +42,13 @@ function getFilesRecursively(dir: string, baseDir: string): any[] {
 
 export async function GET() {
     try {
-        // Folder fisik tetap di public/uploads
         const uploadsDir = path.join(process.cwd(), "public", "uploads", "idcards");
-
         const files = getFilesRecursively(uploadsDir, uploadsDir);
-
-        // Sort by terbaru (descending)
         files.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
         return NextResponse.json({ success: true, files });
     } catch (error) {
         console.error("Gallery API Error:", error);
-        return NextResponse.json(
-            { success: false, error: "Failed to fetch gallery" },
-            { status: 500 }
-        );
+        return NextResponse.json({ success: false, error: "Failed to fetch gallery" }, { status: 500 });
     }
 }
 
@@ -72,27 +60,27 @@ export async function DELETE(req: Request) {
             return NextResponse.json({ success: false, error: "Filepath is required" }, { status: 400 });
         }
 
-        // Jika filepath adalah URL absolut, ambil path relatifnya
-        let relativePath = filepath;
-        if (filepath.startsWith("http")) {
-            const url = new URL(filepath);
-            relativePath = url.pathname; // Hasilnya: /uploads/idcards/...
+        // Terjemahkan URL Proxy ke path fisik
+        // Contoh: /api/gallery/image/2026/05/Prodi/file.png 
+        // Menjadi: public/uploads/idcards/2026/05/Prodi/file.png
+        let internalPath = filepath;
+        if (filepath.includes("/api/gallery/image/")) {
+            internalPath = filepath.replace("/api/gallery/image/", "/uploads/idcards/");
         }
 
-        // Hapus file dari folder public
-        const absolutePath = path.join(process.cwd(), "public", relativePath);
+        const absolutePath = path.join(process.cwd(), "public", internalPath);
+
+        console.log("🗑️ Mencoba menghapus:", absolutePath);
 
         if (fs.existsSync(absolutePath)) {
             fs.unlinkSync(absolutePath);
             return NextResponse.json({ success: true, message: "File berhasil dihapus" });
         } else {
+            console.error("❌ File tidak ditemukan:", absolutePath);
             return NextResponse.json({ success: false, error: "File tidak ditemukan di server" }, { status: 404 });
         }
     } catch (error) {
         console.error("Delete API Error:", error);
-        return NextResponse.json(
-            { success: false, error: "Gagal menghapus file" },
-            { status: 500 }
-        );
+        return NextResponse.json({ success: false, error: "Gagal menghapus file" }, { status: 500 });
     }
 }
