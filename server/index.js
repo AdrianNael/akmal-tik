@@ -12,7 +12,7 @@ app.use(cors());
 const upload = multer({ dest: "uploads/tmp" });
 
 // path ke file counter
-const counterFile = path.join(__dirname, "uploads", "idcards", "counters.json");
+const counterFile = path.join(process.cwd(), "public", "uploads", "idcards", "counters.json");
 
 // load counter dari file
 function loadCounters() {
@@ -25,7 +25,7 @@ function saveCounters(counters) {
   fs.writeFileSync(counterFile, JSON.stringify(counters, null, 2));
 }
 
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/uploads", express.static(path.join(process.cwd(), "public", "uploads")));
 
 // --- remove background ---
 app.post("/remove-background", upload.single("image"), async (req, res) => {
@@ -44,8 +44,11 @@ app.post("/remove-background", upload.single("image"), async (req, res) => {
     const metadata = await sharp(inputPath).metadata();
     await sharp(inputPath).resize({ width: 800 }).toFile(resizedPath);
 
-    // Gunakan 'python3 -m rembg' agar lebih aman dari isu PATH
-    const cmd = `python3 -m rembg i "${resizedPath}" "${bgRemovedPath}"`;
+    // Debug platform
+    console.log("Platform terdeteksi (Express):", process.platform);
+    // Deteksi platform: Windows gunakan 'rembg', Linux gunakan path spesifik atau python3
+    const rembgCmd = process.platform === "win32" ? "rembg" : "/home/sip/.local/bin/rembg";
+    const cmd = `${rembgCmd} i "${resizedPath}" "${bgRemovedPath}"`;
 
     console.log("Running command:", cmd);  // Debugging
 
@@ -113,25 +116,28 @@ app.post("/save-idcard", upload.single("file"), async (req, res) => {
 
     console.log(`🔢 Counter untuk ${baseKey}:`, counter);
 
-    // bikin folder per prodi
-    const prodiDir = path.join(__dirname, "uploads", "idcards", safeProdi);
-    console.log("📂 Target folder:", prodiDir);
+    const finalNim = nim || "UNKNOWN_NIM";
+    const finalName = (name || "UNKNOWN_NAME").replace(/\s+/g, "_");
+    const currentSafeProdi = (prodi || "TANPA_PRODI").replace(/\s+/g, "_");
 
-    if (!fs.existsSync(prodiDir)) {
-      fs.mkdirSync(prodiDir, { recursive: true });
-      console.log("📁 Folder dibuat:", prodiDir);
-    } else {
-      console.log("✅ Folder sudah ada:", prodiDir);
+    const now = new Date();
+    const year = now.getFullYear().toString();
+    const month = (now.getMonth() + 1).toString().padStart(2, "0");
+
+    const targetDir = path.join(process.cwd(), "public", "uploads", "idcards", year, month, currentSafeProdi);
+
+    console.log("📂 Target folder:", targetDir);
+
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
+      console.log("📁 Folder dibuat:", targetDir);
     }
 
-    // nama file akhir
-    const safeName = name.replace(/\s+/g, "_");
-    const filename = `${nim}_${safeName}_${safeProdi}_${counter}.png`;
+    const filename = `${finalNim}_${finalName}.png`;
 
-    const targetPath = path.join(prodiDir, filename);
+    const targetPath = path.join(targetDir, filename);
     console.log("🎯 Target file:", targetPath);
 
-    // pindahkan file dari tmp → folder tujuan
     fs.renameSync(req.file.path, targetPath);
     console.log(
       "✅ File berhasil dipindahkan:",
@@ -143,7 +149,7 @@ app.post("/save-idcard", upload.single("file"), async (req, res) => {
     return res.json({
       success: true,
       message: "File berhasil disimpan",
-      filePath: `/uploads/idcards/${safeProdi}/${filename}`,
+      filePath: `/uploads/idcards/${year}/${month}/${safeProdi}/${filename}`,
       counter: counter,
     });
   } catch (err) {

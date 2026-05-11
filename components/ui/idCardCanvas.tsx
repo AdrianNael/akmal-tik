@@ -22,10 +22,11 @@ const IDCardCanvas = forwardRef<IDCardCanvasHandle, IDCardCanvasProps>(
 
     const handleDownload = async () => {
       try {
+        // Ambil blob dari photoUrl (hasil eraser background)
         const response = await fetch(photoUrl);
         const blob = await response.blob();
 
-        const tempFilename = `${nim}_${name}_${prodi}_${idFoto}.png`;
+        const tempFilename = `${nim}_${name}_${prodi}.png`;
 
         const formData = new FormData();
         formData.append("file", blob, tempFilename);
@@ -34,6 +35,7 @@ const IDCardCanvas = forwardRef<IDCardCanvasHandle, IDCardCanvasProps>(
         formData.append("prodi", prodi);
         formData.append("idFoto", idFoto);
 
+        // Simpan ke server untuk arsip galeri
         const res = await fetch("/api/save-idcard", {
           method: "POST",
           body: formData,
@@ -42,44 +44,29 @@ const IDCardCanvas = forwardRef<IDCardCanvasHandle, IDCardCanvasProps>(
         if (!res.ok) {
           const errText = await res.text();
           console.error("❌ Server error:", errText);
-          return;
         }
 
         const data = await res.json();
         console.log("✅ Response server:", data);
 
-        if (data.success && data.filePath) {
-          const fileUrl = data.filePath;
-          const finalFilename = fileUrl.split("/").pop();
+        // Eksekusi download foto transparan ke browser
+        const downloadLink = document.createElement("a");
+        downloadLink.href = photoUrl;
+        const displayName = (name || "ID").replace(/\s+/g, "_");
+        const displayNim = nim || "Card";
+        downloadLink.download = `${displayNim}_${displayName}.png`;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
 
-          const fileRes = await fetch(fileUrl);
-          if (!fileRes.ok) {
-            console.error("❌ Gagal fetch file:", await fileRes.text());
-            return;
-          }
-
-          const fileBlob = await fileRes.blob();
-          const downloadUrl = URL.createObjectURL(fileBlob);
-
-          const downloadLink = document.createElement("a");
-          downloadLink.href = downloadUrl;
-          downloadLink.download = finalFilename ?? "idcard.png";
-          document.body.appendChild(downloadLink);
-          downloadLink.click();
-          document.body.removeChild(downloadLink);
-
-          URL.revokeObjectURL(downloadUrl);
-        } else {
-          console.error("❌ File path tidak ditemukan di response server");
-        }
       } catch (error) {
-        console.error("Error downloading/saving image:", error);
+        console.error("Error downloading eraser result:", error);
       }
     };
 
     useImperativeHandle(ref, () => ({
       download: handleDownload,
-    }));
+    }), [handleDownload]);
 
     return (
       <div className="w-full h-auto flex flex-col items-center p-4">

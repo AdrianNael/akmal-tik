@@ -32,7 +32,13 @@ export async function POST(req) {
     await sharp(inputPath).resize({ width: 800 }).toFile(resizedPath);
 
     await new Promise((resolve, reject) => {
-      const cmd = `/home/sip/.local/bin/rembg i "${resizedPath}" "${bgRemovedPath}"`;
+      // Deteksi berdasarkan path: jika mengandung C:\ maka gunakan 'rembg' (Windows)
+      const isWindows = resizedPath.includes(":\\") || process.platform === "win32";
+      const rembgCmd = isWindows ? "rembg" : "/home/sip/.local/bin/rembg";
+      const cmd = `${rembgCmd} i "${resizedPath}" "${bgRemovedPath}"`;
+      
+      console.log("DEBUG - isWindows:", isWindows);
+      console.log("DEBUG - Command yang digunakan:", cmd);
 
       exec(cmd, (err, stdout, stderr) => {
         if (stdout) console.log("Rembg stdout:", stdout);
@@ -54,7 +60,7 @@ export async function POST(req) {
       headers: { "Content-Type": "image/png" },
     });
   } catch (err) {
-    console.error("❌ remove-bg error:", err);
+    console.error("❌ DEBUG ERROR WINDOWS:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   } finally {
     // Cleanup
